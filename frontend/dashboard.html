@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - CampusCart</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap"
+        rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+
+<body>
+    <header class="header" id="header">
+        <div class="container">
+            <a href="index.html" class="logo">
+                <div class="logo-icon">🛒</div><span>CampusCart</span>
+            </a>
+            <nav class="nav">
+                <ul class="nav-links">
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="products.html">Products</a></li>
+                    <li><a href="dashboard.html" class="active">My Orders</a></li>
+                </ul>
+                <div class="nav-actions">
+                    <a href="cart.html" class="nav-icon"><i data-lucide="shopping-cart"></i><span class="cart-count"
+                            id="cart-count">0</span></a>
+                    <a href="#" class="nav-icon" onclick="Auth.logout()"><i data-lucide="log-out"></i></a>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <section class="dashboard">
+        <div class="container">
+            <div class="dashboard-layout">
+                <aside class="dashboard-sidebar">
+                    <div class="user-profile">
+                        <div class="user-avatar">👤</div>
+                        <h4 id="user-name">Student</h4>
+                        <p id="user-email">student@college.edu</p>
+                    </div>
+                    <nav class="sidebar-nav">
+                        <a href="#" class="active"><i data-lucide="package"></i> My Orders</a>
+                        <a href="#"><i data-lucide="heart"></i> Wishlist</a>
+                        <a href="#"><i data-lucide="settings"></i> Settings</a>
+                        <a href="#" onclick="Auth.logout()"><i data-lucide="log-out"></i> Logout</a>
+                    </nav>
+                </aside>
+
+                <main class="dashboard-content">
+                    <div class="dashboard-header">
+                        <h2>My Orders</h2>
+                    </div>
+                    <div id="orders-container">
+                        <div class="skeleton" style="height:150px;margin-bottom:1rem;"></div>
+                    </div>
+                    <div class="empty-state" id="empty-orders" style="display:none; text-align: center; padding: 2rem;">
+                        <div class="empty-state-icon" style="font-size: 3rem;">📦</div>
+                        <h3>No orders yet</h3>
+                        <p>Start shopping to see your orders here!</p>
+                        <br>
+                        <a href="products.html" class="btn btn-primary">Shop Now</a>
+                    </div>
+                </main>
+            </div>
+        </div>
+    </section>
+
+    <div class="toast" id="toast"></div>
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/cart.js"></script>
+    <script src="js/main.js"></script>
+    <script>
+        lucide.createIcons();
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (!Auth.isLoggedIn()) {
+                window.location.href = 'login.html?redirect=dashboard.html';
+                return;
+            }
+
+            const user = Auth.getUser();
+            if (user) {
+                document.getElementById('user-name').textContent = user.name;
+                document.getElementById('user-email').textContent = user.email;
+            }
+
+            await loadOrders();
+        });
+
+        async function loadOrders() {
+            const container = document.getElementById('orders-container');
+            const empty = document.getElementById('empty-orders');
+
+            try {
+                const orders = await API.getOrders();
+
+                if (!orders || orders.length === 0) {
+                    container.style.display = 'none';
+                    empty.style.display = 'block';
+                    return;
+                }
+
+                container.innerHTML = orders.map(order => `
+                    <div class="order-card">
+                        <div class="order-header">
+                            <span class="order-id">Order #${order.orderNumber || order._id.slice(-8)}</span>
+                            <span class="order-status status-${order.orderStatus}">${order.orderStatus}</span>
+                        </div>
+                        <div class="order-body">
+                            <div class="order-items">
+                                ${order.items.slice(0, 3).map(item => `
+                                    <div class="order-item" style="display:flex; gap:1rem; margin-bottom:0.5rem; align-items:center;">
+                                        <div class="order-item-img" style="width:50px; height:50px; background:#f1f5f9; border-radius:4px;"></div>
+                                        <div class="order-item-info">
+                                            <h5 style="margin:0;">${item.name}</h5>
+                                            <p style="margin:0; font-size:0.8rem; color:gray;">Qty: ${item.quantity} × ₹${item.price}</p>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                                ${order.items.length > 3 ? `<p style="color:var(--gray); font-size:0.9rem;">+${order.items.length - 3} more items</p>` : ''}
+                            </div>
+                            <div class="order-footer" style="display:flex; justify-content:space-between; margin-top:1rem; padding-top:1rem; border-top:1px solid #f8fafc;">
+                                <span style="color:var(--gray); font-size:0.9rem;">${formatDate(order.createdAt)} • ${order.paymentMethod === 'cod' ? 'Cash on Delivery' : 'Paid Online'}</span>
+                                <span class="order-total" style="font-weight:700;">₹${order.totalAmount}</span>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+
+                lucide.createIcons();
+            } catch (e) {
+                container.innerHTML = '<p>Error loading orders. Please try again.</p>';
+            }
+        }
+    </script>
+</body>
+
+</html>

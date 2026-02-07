@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - CampusCart</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap"
+        rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .admin-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .admin-card {
+            background: white;
+            border-radius: 1rem;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e2e8f0;
+        }
+
+        .admin-card img {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+        }
+
+        .admin-card-body {
+            padding: 1rem;
+        }
+
+        .admin-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .status-pending {
+            background: #fef3c7;
+            color: #d97706;
+        }
+
+        .status-approved {
+            background: #dcfce7;
+            color: #16a34a;
+        }
+
+        .status-rejected {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+    </style>
+</head>
+
+<body>
+    <header class="header">
+        <div class="container">
+            <a href="index.html" class="logo">
+                <div class="logo-icon">🛒</div><span>CampusCart Admin</span>
+            </a>
+            <nav class="nav">
+                <ul class="nav-links">
+                    <li><a href="index.html">Live Site</a></li>
+                    <li><a href="#" onclick="Auth.logout()">Logout</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <div class="container" style="padding: 2rem 1rem;">
+        <h1 class="section-title" style="text-align: left;">Pending Approvals</h1>
+
+        <div id="loading" style="text-align: center; padding: 2rem;">Loading...</div>
+
+        <div id="admin-grid" class="admin-grid">
+            <!-- Items injected here -->
+        </div>
+
+        <div id="empty-state" style="display: none; text-align: center; margin-top: 3rem;">
+            <h3>No pending items</h3>
+            <p>All clean! Good job.</p>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/main.js"></script>
+    <script>
+        lucide.createIcons();
+
+        // Add admin methods
+        API.getPendingProducts = async function () {
+            const res = await fetch(`${API_BASE_URL}/products/pending`, {
+                headers: this.getHeaders()
+            });
+            return res.json();
+        };
+
+        API.updateProductStatus = async function (id, status) {
+            const res = await fetch(`${API_BASE_URL}/products/${id}/status`, {
+                method: 'PUT',
+                headers: this.getHeaders(),
+                body: JSON.stringify({ status })
+            });
+            return res.json();
+        };
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (!Auth.isLoggedIn()) {
+                window.location.href = 'login.html';
+                return;
+            }
+            loadPendingItems();
+        });
+
+        async function loadPendingItems() {
+            try {
+                const res = await API.getPendingProducts();
+                document.getElementById('loading').style.display = 'none';
+
+                if (res.success && res.data.length > 0) {
+                    renderItems(res.data);
+                } else {
+                    document.getElementById('empty-state').style.display = 'block';
+                }
+            } catch (err) {
+                console.error(err);
+                showToast('Failed to load items', 'error');
+            }
+        }
+
+        function renderItems(items) {
+            const grid = document.getElementById('admin-grid');
+            grid.innerHTML = items.map(item => `
+                <div class="admin-card">
+                    <img src="${item.image}" alt="${item.name}">
+                    <div class="admin-card-body">
+                        <span class="status-badge status-${item.status}">${item.status.toUpperCase()}</span>
+                        <h3 style="font-size: 1.1rem; margin: 0.5rem 0;">${item.name}</h3>
+                        <p style="color: gray; font-size: 0.9rem; margin-bottom: 0.5rem;">Price: ₹${item.price} • User: ${item.seller}</p>
+                        <p style="font-size: 0.9rem; margin-bottom: 1rem;">${item.description}</p>
+                        
+                        <div class="admin-actions">
+                            <button class="btn btn-primary" style="flex:1; padding: 0.5rem;" onclick="updateStatus('${item._id}', 'approved')">Approve</button>
+                            <button class="btn btn-outline" style="flex:1; padding: 0.5rem; color: var(--danger); border-color: var(--danger);" onclick="updateStatus('${item._id}', 'rejected')">Reject</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function updateStatus(id, status) {
+            if (!confirm(`Mark this item as ${status}?`)) return;
+
+            try {
+                const res = await API.updateProductStatus(id, status);
+                if (res.success) {
+                    showToast(`Item ${status}`, 'success');
+                    loadPendingItems(); // Refresh
+                } else {
+                    showToast('Update failed', 'error');
+                }
+            } catch (e) {
+                showToast('Error updating status', 'error');
+            }
+        }
+    </script>
+</body>
+
+</html>

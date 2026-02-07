@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Details - CampusCart</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap"
+        rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+
+<body>
+    <header class="header" id="header">
+        <div class="container">
+            <a href="index.html" class="logo">
+                <div class="logo-icon">🛒</div><span>CampusCart</span>
+            </a>
+            <nav class="nav">
+                <ul class="nav-links">
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="products.html">Products</a></li>
+                    <li><a href="dashboard.html">My Orders</a></li>
+                </ul>
+                <div class="nav-actions">
+                    <a href="cart.html" class="nav-icon"><i data-lucide="shopping-cart"></i><span class="cart-count"
+                            id="cart-count">0</span></a>
+                    <a href="login.html" class="nav-icon" id="user-icon"><i data-lucide="user"></i></a>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <section class="product-detail">
+        <div class="container">
+            <div class="product-detail-grid">
+                <div class="product-gallery">
+                    <div class="main-image">
+                        <img id="product-image" src="" alt="Product">
+                    </div>
+                </div>
+                <div class="product-detail-info">
+                    <span class="product-category" id="product-category">Category</span>
+                    <h1 id="product-name">Loading...</h1>
+                    <div class="product-meta">
+                        <div class="product-rating">⭐⭐⭐⭐⭐ <span>(24 reviews)</span></div>
+                        <span style="color:var(--success);">✓ In Stock</span>
+                    </div>
+                    <div class="product-detail-price" id="product-price">₹0</div>
+                    <p class="product-description" id="product-description">Loading product description...</p>
+
+                    <div class="product-options" id="rental-options" style="display:none; margin: 1.5rem 0;">
+                        <div class="option-group">
+                            <label style="display:block; margin-bottom:0.5rem; font-weight:600;">Rental Duration</label>
+                            <div class="rental-duration-options">
+                                <button class="duration-btn active" data-days="1">1 Day</button>
+                                <button class="duration-btn" data-days="3">3 Days</button>
+                                <button class="duration-btn" data-days="7">1 Week</button>
+                                <button class="duration-btn" data-days="30">1 Month</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="add-to-cart-section">
+                        <div class="quantity-controls">
+                            <button onclick="updateQty(-1)">−</button>
+                            <span id="quantity">1</span>
+                            <button onclick="updateQty(1)">+</button>
+                        </div>
+                        <button class="btn btn-primary btn-lg" id="add-to-cart-btn" onclick="addProductToCart()">
+                            <i data-lucide="shopping-cart"></i>
+                            Add to Cart
+                        </button>
+                    </div>
+
+                    <div class="product-features">
+                        <div class="feature-item"
+                            style="padding:1rem; text-align:left; display:flex; gap:1rem; align-items:center;">
+                            <i data-lucide="truck" style="margin:0;"></i>
+                            <div>
+                                <h5 style="margin:0;">Free Delivery</h5>
+                                <small style="color:var(--gray);">To hostel within 2 hrs</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div class="toast" id="toast"></div>
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/cart.js"></script>
+    <script src="js/main.js"></script>
+    <script>
+        lucide.createIcons();
+
+        let product = null;
+        let quantity = 1;
+        let rentalDays = 1;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const productId = getUrlParam('id');
+            if (!productId) {
+                showToast('Product not found', 'error');
+                return;
+            }
+
+            try {
+                product = await API.getProduct(productId);
+                if (product) {
+                    renderProduct();
+                    setupRentalOptions();
+                } else {
+                    document.querySelector('.product-detail').innerHTML = '<div class="container text-center"><h3>Product not found</h3></div>';
+                }
+            } catch (e) {
+                console.error(e);
+                showToast('Failed to load product', 'error');
+            }
+        });
+
+        function renderProduct() {
+            document.getElementById('product-name').textContent = product.name;
+            document.getElementById('product-category').textContent = product.category;
+            document.getElementById('product-description').textContent = product.description;
+            document.getElementById('product-image').src = getImageUrl(product.image);
+
+            const isRental = product.isRental || product.category === 'rental';
+            const price = isRental ? product.rentalPricePerDay : product.price;
+            document.getElementById('product-price').innerHTML = `₹${price}${isRental ? '<small>/day</small>' : ''}`;
+
+            if (isRental) {
+                document.getElementById('rental-options').style.display = 'block';
+            }
+
+            document.title = `${product.name} - CampusCart`;
+        }
+
+        function setupRentalOptions() {
+            document.querySelectorAll('.duration-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.duration-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    rentalDays = parseInt(btn.dataset.days);
+                    updatePrice();
+                });
+            });
+        }
+
+        function updatePrice() {
+            const isRental = product.isRental || product.category === 'rental';
+            if (isRental) {
+                const total = product.rentalPricePerDay * rentalDays;
+                document.getElementById('product-price').innerHTML = `₹${total}<small> (${rentalDays} day${rentalDays > 1 ? 's' : ''})</small>`;
+            }
+        }
+
+        function updateQty(delta) {
+            quantity = Math.max(1, quantity + delta);
+            document.getElementById('quantity').textContent = quantity;
+        }
+
+        async function addProductToCart() {
+            if (!product) return;
+            const isRental = product.isRental || product.category === 'rental';
+
+            const btn = document.getElementById('add-to-cart-btn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = 'Adding...';
+
+            await CartManager.addToCart(product, quantity, isRental, rentalDays);
+
+            btn.innerHTML = 'Added!';
+            setTimeout(() => {
+                btn.innerHTML = originalText;
+                lucide.createIcons();
+            }, 2000);
+        }
+    </script>
+</body>
+
+</html>

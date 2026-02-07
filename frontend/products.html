@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Products - CampusCart</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap"
+        rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+
+<body>
+    <header class="header" id="header">
+        <div class="container">
+            <a href="index.html" class="logo">
+                <div class="logo-icon">🛒</div><span>CampusCart</span>
+            </a>
+            <nav class="nav">
+                <ul class="nav-links">
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="products.html" class="active">Products</a></li>
+                    <li><a href="products.html?category=rental things">Rentals</a></li>
+                </ul>
+                <div class="nav-actions">
+                    <div class="search-bar">
+                        <input type="text" placeholder="Search..." id="search-input">
+                        <i data-lucide="search"></i>
+                    </div>
+                    <a href="cart.html" class="nav-icon"><i data-lucide="shopping-cart"></i><span class="cart-count"
+                            id="cart-count">0</span></a>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <div class="products-page">
+        <div class="container">
+            <div class="page-header">
+                <h1 id="page-title">All Products</h1>
+            </div>
+
+            <div class="filters-bar">
+                <div class="filter-group">
+                    <button class="filter-btn active" data-filter="all" onclick="filterProducts('all')">All</button>
+                    <button class="filter-btn" data-filter="grocery"
+                        onclick="filterProducts('grocery')">Groceries</button>
+                    <button class="filter-btn" data-filter="stationery"
+                        onclick="filterProducts('stationery')">Stationery</button>
+                    <button class="filter-btn" data-filter="rental" onclick="filterProducts('rental')">Rentals</button>
+                </div>
+            </div>
+
+            <div class="product-grid" id="products-container">
+                <div class="skeleton"></div>
+            </div>
+
+            <div id="no-products" style="display:none; text-align:center; padding: 2rem;">
+                <h3>No products found</h3>
+                <p>Try adjusting your search or filters.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/cart.js"></script>
+    <script src="js/main.js"></script>
+    <script>
+        lucide.createIcons();
+
+        let allProducts = [];
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const categoryParam = getUrlParam('category');
+            const searchParam = getUrlParam('search');
+
+            if (categoryParam) {
+                setActiveFilter(categoryParam);
+            }
+
+            if (searchParam) {
+                document.getElementById('search-input').value = searchParam;
+                document.getElementById('page-title').textContent = `Search: "${searchParam}"`;
+            }
+
+            try {
+                const params = {};
+                if (categoryParam) params.category = categoryParam;
+                if (searchParam) params.search = searchParam;
+
+                const products = await API.getProducts(params);
+                allProducts = products || [];
+                renderProducts(allProducts);
+            } catch (error) {
+                console.error('Failed to load products');
+                document.getElementById('products-container').innerHTML = '<p>Error loading products. Ensure backend is running.</p>';
+            }
+        });
+
+        function renderProducts(products) {
+            const container = document.getElementById('products-container');
+            const noProducts = document.getElementById('no-products');
+
+            if (products.length === 0) {
+                container.style.display = 'none';
+                noProducts.style.display = 'block';
+                return;
+            }
+
+            container.style.display = 'grid';
+            noProducts.style.display = 'none';
+            container.innerHTML = products.map(createProductCard).join('');
+            lucide.createIcons();
+        }
+
+        function setActiveFilter(filter) {
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            const btn = document.querySelector(`.filter-btn[data-filter="${filter}"]`);
+            if (btn) btn.classList.add('active');
+        }
+
+        function filterProducts(category) {
+            window.location.href = category === 'all' ? 'products.html' : `products.html?category=${category}`;
+        }
+
+        // Search handler
+        document.getElementById('search-input').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                window.location.href = `products.html?search=${this.value}`;
+            }
+        });
+    </script>
+</body>
+
+</html>

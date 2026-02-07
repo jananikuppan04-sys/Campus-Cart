@@ -1,0 +1,16 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Graduation Cap -->
+  <path d="M100 40L20 80L100 120L180 80L100 40Z" fill="#6366F1" stroke="#4F46E5" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M180 80V130C180 145 160 145 160 130V90" stroke="#F59E0B" stroke-width="4" stroke-linecap="round"/>
+  
+  <!-- Cart Basket integrated -->
+  <path d="M40 100L55 155C57 165 65 172 75 172H125C135 172 143 165 145 155L160 100" stroke="#6366F1" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- Wheels -->
+  <circle cx="70" cy="172" r="10" fill="#10B981"/>
+  <circle cx="130" cy="172" r="10" fill="#10B981"/>
+  
+  <!-- Speed lines -->
+  <path d="M170 140H190" stroke="#F59E0B" stroke-width="4" stroke-linecap="round"/>
+  <path d="M175 155H185" stroke="#F59E0B" stroke-width="4" stroke-linecap="round"/>
+</svg>

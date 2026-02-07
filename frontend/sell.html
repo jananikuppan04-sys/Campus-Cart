@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sell on CampusCart</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .sell-form {
+            max-width: 800px;
+            margin: 2rem auto;
+            background: white;
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        .image-preview {
+            width: 100%;
+            height: 200px;
+            background: #f1f5f9;
+            border: 2px dashed #94a3b8;
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1rem;
+            overflow: hidden;
+        }
+        .image-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <a href="index.html" class="logo"><div class="logo-icon">🛒</div><span>CampusCart</span></a>
+            <nav class="nav">
+                <ul class="nav-links">
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="dashboard.html">Dashboard</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="sell-form">
+            <h1 class="section-title" style="text-align: left;">Sell Your Item</h1>
+            <p>Upload your item for sale or rent. All items are reviewed by admin before going live.</p>
+            
+            <form id="sell-form" style="margin-top: 2rem;">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Product Name</label>
+                        <input type="text" class="form-input" id="name" required placeholder="e.g., Mathematics Textbook">
+                    </div>
+                    <div class="form-group">
+                        <label>Category</label>
+                        <select class="form-input" id="category" required onchange="toggleRentalFields()">
+                            <option value="stationery">Stationery</option>
+                            <option value="grocery">Grocery/Snacks</option>
+                            <option value="rental">Rental / Gear</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea class="form-input" id="description" rows="3" required placeholder="Describe condition, details..."></textarea>
+                </div>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Price (₹)</label>
+                        <input type="number" class="form-input" id="price" required placeholder="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Stock Quantity</label>
+                        <input type="number" class="form-input" id="stock" required value="1">
+                    </div>
+                </div>
+
+                <div id="rental-fields" style="display: none; background: #f8fafc; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem;">
+                    <h4 style="margin-top: 0;">Rental Settings</h4>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Price Per Day (₹)</label>
+                            <input type="number" class="form-input" id="rentalPrice">
+                        </div>
+                        <div class="form-group">
+                            <label>Max Duration</label>
+                            <select class="form-input" id="rentalDuration">
+                                <option value="daily">Daily</option>
+                                <option value="weekly">Weekly</option>
+                                <option value="monthly">Monthly</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Image URL</label>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <input type="url" class="form-input" id="image" required placeholder="https://..." onchange="updatePreview()">
+                        <button type="button" class="btn btn-outline" onclick="generateRandomImage()">🎲 Random</button>
+                    </div>
+                    <small style="color: gray;">Paste an image URL or click Random for a placeholder.</small>
+                </div>
+
+                <div class="image-preview" id="preview-container">
+                    <span style="color: #64748b;">Image Preview</span>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block btn-lg">Submit for Approval</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/main.js"></script>
+    <script>
+        lucide.createIcons();
+
+        // Add upload method to API if missing (monkey patch for now or update api.js later)
+        API.uploadProduct = async function(data) {
+            const res = await fetch(`${API_BASE_URL}/products`, {
+                method: 'POST',
+                headers: this.getHeaders(),
+                body: JSON.stringify(data)
+            });
+            return res.json();
+        };
+
+        function toggleRentalFields() {
+            const cat = document.getElementById('category').value;
+            document.getElementById('rental-fields').style.display = cat === 'rental' ? 'block' : 'none';
+        }
+
+        function updatePreview() {
+            const url = document.getElementById('image').value;
+            const container = document.getElementById('preview-container');
+            if (url) {
+                container.innerHTML = `<img src="${url}" onerror="this.src=''; this.parentElement.innerHTML='Invalid Image URL'">`;
+            }
+        }
+
+        function generateRandomImage() {
+            const cat = document.getElementById('category').value;
+            const randomId = Math.floor(Math.random() * 1000);
+            const url = `https://source.unsplash.com/400x300/?${cat}&sig=${randomId}`;
+            // Use a stable placeholder since unsplash source is flaky without real IDs
+            const stableUrl = `https://placehold.co/400x300/6366f1/ffffff?text=${cat}+Item`;
+            
+            document.getElementById('image').value = stableUrl; // Use reliable one for demo
+            updatePreview();
+        }
+
+        document.getElementById('sell-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!Auth.isLoggedIn()) {
+                window.location.href = 'login.html?redirect=sell.html';
+                return;
+            }
+
+            const btn = e.target.querySelector('button[type="submit"]');
+            btn.disabled = true;
+            btn.innerHTML = 'Submitting...';
+
+            const category = document.getElementById('category').value;
+            const isRental = category === 'rental';
+
+            const data = {
+                name: document.getElementById('name').value,
+                description: document.getElementById('description').value,
+                price: Number(document.getElementById('price').value),
+                stock: Number(document.getElementById('stock').value),
+                category,
+                subcategory: 'general',
+                image: document.getElementById('image').value,
+                isRental,
+                rentalPricePerDay: isRental ? Number(document.getElementById('rentalPrice').value) : 0,
+                rentalDuration: isRental ? document.getElementById('rentalDuration').value : null
+            };
+
+            try {
+                const res = await API.uploadProduct(data);
+                if (res.success) {
+                    showToast('Product uploaded! Pending approval.', 'success');
+                    setTimeout(() => window.location.href = 'dashboard.html', 2000);
+                } else {
+                    showToast(res.message || 'Upload failed', 'error');
+                    btn.disabled = false;
+                    btn.innerHTML = 'Submit for Approval';
+                }
+            } catch (err) {
+                showToast('Something went wrong', 'error');
+                btn.disabled = false;
+                btn.innerHTML = 'Submit for Approval';
+            }
+        });
+    </script>
+</body>
+</html>
